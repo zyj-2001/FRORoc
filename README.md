@@ -1,19 +1,8 @@
-# DiffMM — Flow-Matching Enhanced Multimodal Recommendation
-
-基于 Flow Matching 的多模态推荐模型，在原始 DiffMM 基础上引入以下改进：
-
-1. **Per-modality Flow Path**：image / text / audio 各用独立的 scheduler 和 ODE 求解器
-2. **高阶 ODE 求解器**：支持 Euler / Midpoint（默认）/ RK4，精度更高
-3. **数据驱动噪声起点**：以 batch item 均值为中心，缩短传输路径
-4. **Minibatch OT 配对**（可选）：匈牙利算法在 batch 内最优配对 x₀↔x₁
-5. **CLEAR 跨模态去冗余**（可选）：SVD 投影扣除图像/文本共享子空间，保留各模态互补信息
-
----
 
 ## 目录结构
 
 ```
-DiffMM/
+FRORoc/
 ├── main.py            # 训练与测试主入口
 ├── model.py           # Model / CLEARProjection / FlowMatching / VelocityField
 ├── datahandler.py     # 数据加载
@@ -79,27 +68,6 @@ python main.py \
   --scheduler_text linear
 ```
 
-### 开启 CLEAR 去冗余 + OT 配对（增强版）
-
-```bash
-python main.py \
-  --data tiktok \
-  --reg 1e-4 \
-  --ssl_reg 1e-2 \
-  --epoch 50 \
-  --trans 1 \
-  --e_loss 0.1 \
-  --cl_method 1 \
-  --scheduler_image cosine \
-  --scheduler_text linear \
-  --scheduler_audio vp \
-  --clear_rank 8 \
-  --clear_lam 1.0 \
-  --use_ot
-```
-
----
-
 ## 完整参数说明
 
 ### 基础参数
@@ -154,7 +122,7 @@ python main.py \
 
 **scheduler 可选值**：`cosine` | `linear` | `vp` | `linear_vp` | `poly2` | `poly3`
 
-### CLEAR 去冗余参数
+### ROP 去冗余参数
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
@@ -162,23 +130,3 @@ python main.py \
 | `--clear_lam` | `1.0` | 投影强度 λ，`1.0` = 完全去除共享子空间 |
 | `--clear_text` | `False` | 同时对 text 做投影（默认 text-first：只投影 image） |
 
----
-
-## 消融建议
-
-```bash
-# Baseline：全用 cosine，不开 CLEAR
-python main.py --data baby --trans 1 --cl_method 1
-
-# 只换 scheduler
-python main.py --data baby --trans 1 --cl_method 1 \
-  --scheduler_image cosine --scheduler_text linear
-
-# 只开 CLEAR
-python main.py --data baby --trans 1 --cl_method 1 --clear_rank 8
-
-# 全开
-python main.py --data baby --trans 1 --cl_method 1 \
-  --scheduler_image cosine --scheduler_text linear \
-  --clear_rank 8 --use_ot
-```
